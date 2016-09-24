@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Spiderman Game</title>
+	<link rel="shortcut icon" href="images/standing.png" />
+</head>
+<style type="text/css">
+	html,
+	body {
+		height: 100%;
+		width: 100%;
+		margin: 0;
+		font-size: 0;
+	}
+
+</style>
+<body>
+	<canvas id="canvas"></canvas>
+</body>
+<script type="text/javascript" src="spiderman-game.js"></script>
+<script type="text/javascript">
+
+var game = new SpidermanGame({
+	canvas: "#canvas"
+});
+game.load();
+
+</script>
+</html>
