@@ -103,6 +103,7 @@ function SpidermanGame(opts) {
 SpidermanGame.prototype.paused             = false;
 SpidermanGame.prototype.initialized        = false;
 SpidermanGame.prototype.soundEffects       = true;
+SpidermanGame.prototype.escapeKey          = false;
 
 SpidermanGame.prototype.load = function() {
 	if (!this.options) return false;
@@ -123,11 +124,28 @@ SpidermanGame.prototype.load = function() {
 	this.spiderman = spiderman;
 
 	document.addEventListener("keydown", function(e) {
+		var keyCode = e.keyCode || e.which;
+
+		// fire this on the FIRST keydown callback
+		if (keyCode == KEY.ESC && !self.escapeKey) {
+			self.escapeKey = true;
+			if (self.paused) {
+				self.unpause();
+			} else {
+				self.pause();
+			}
+		}
+
 		self.spiderman.keydown(e.keyCode || e.which);
 	});
 
 	document.addEventListener("keyup", function(e) {
-		self.spiderman.keyup(e.keyCode || e.which);
+		var keyCode = e.keyCode || e.which;
+		if (keyCode == KEY.ESC) {
+			self.escapeKey = false;
+		}
+
+		self.spiderman.keyup(keyCode);
 	});
 
 	for (var i = 0; i < AUDIO_LOOP.length; i++) {
@@ -195,6 +213,7 @@ SpidermanGame.prototype.pause = function() {
 
 SpidermanGame.prototype.unpause = function() {
 	this.paused = false;
+	this.update();
 }
 
 SpidermanGame.prototype.playSound = function(audio, clone, currentTime) {
