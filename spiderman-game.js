@@ -13,25 +13,26 @@ var requestAnimationFrame = (function() {
 window.requestAnimFrame = requestAnimationFrame;
 
 var RESOURCES = {
-	"JUMP"               : "images/jump.png?v=1",
-	"RUNNING_CHANGE_STEP": "images/running-change-step.png?v=1",
-	"RUNNING_LEFT_STEP"  : "images/running-left-step.png?v=1",
-	"RUNNING_RIGHT_STEP" : "images/running-right-step.png?v=1",
-	"SHOOT_CHANGE_STEP"  : "images/shoot-change-step.png?v=1",
-	"SHOOT_JUMP"         : "images/shoot-jump.png?v=1",
-	"SHOOT_LEFT-STEP"    : "images/shoot-left-step.png?v=1",
-	"SHOOT_RIGHT-STEP"   : "images/shoot-right-step.png?v=1",
-	"SHOOT"              : "images/shoot.png?v=1",
-	"SLIDE"              : "images/slide.png?v=1",
-	"STANDING"           : "images/standing.png?v=1",
-	"WEB_PROJECTILE"     : "images/web.png?v=1",
+	"JUMP"               : "images/jump.png",
+	"RUNNING_CHANGE_STEP": "images/running-change-step.png",
+	"RUNNING_LEFT_STEP"  : "images/running-left-step.png",
+	"RUNNING_RIGHT_STEP" : "images/running-right-step.png",
+	"SHOOT_CHANGE_STEP"  : "images/shoot-change-step.png",
+	"SHOOT_JUMP"         : "images/shoot-jump.png",
+	"SHOOT_LEFT-STEP"    : "images/shoot-left-step.png",
+	"SHOOT_RIGHT-STEP"   : "images/shoot-right-step.png",
+	"SHOOT"              : "images/shoot.png",
+	"SLIDE"              : "images/slide.png",
+	"STANDING"           : "images/standing.png",
+	"WEB_PROJECTILE"     : "images/web.png",
 	"BACKGROUND"         : "images/background.jpg",
 	"ROOF"               : "images/wall.jpg",
-	"BUILDING"           : "images/building.png?v=1",
-	"SPIDER_HEAD"        : "images/spider-head.png?v=1",
-	"HEART"              : "images/heart.png?v=1",
-	"VENOM"              : "images/venom.png?v=1",
-	"KNIFE"              : "images/knife.png?v=1",
+	"BUILDING"           : "images/building.png",
+	"SPIDER_HEAD"        : "images/spider-head.png",
+	"HEART"              : "images/heart.png",
+	"VENOM"              : "images/venom.png",
+	"THUG"               : "images/thug.png",
+	"KNIFE"              : "images/knife.png",
 };
 
 var AUDIO_RESOURCES = {
@@ -250,7 +251,7 @@ SpidermanGame.prototype.drawBackground = function() {
 	var x = this.cameraX / 5 * -1;
 	var y = 0;
 
-	x %= this.canvas.width;
+	x %= Math.min(background.width, this.canvas.width);
 
 	var ratio = backgroundWidth / backgroundHeight;
 	this.ctx.drawImage(background, x, y, this.canvas.height * ratio, this.canvas.height);
@@ -445,6 +446,9 @@ function SpiderMan(game) {
 	this.maxHealth = 5;
 	this.respawns = 3;
 
+	this.velocityX = 0;
+	this.velocityY = 0;
+
 	// to regenerate every N fps (approximately N / 60 seconds)
 	this.regenerationSpeed = 600;
 
@@ -455,8 +459,7 @@ function SpiderMan(game) {
 	this.runningShootingFrames = ["SHOOT_RIGHT-STEP", "SHOOT_CHANGE_STEP", "SHOOT_LEFT-STEP", "SHOOT_CHANGE_STEP"];
 	this.runningFrame = 0;
 
-	this.gravityForce = 1;
-	this.jumpForce = 0;
+	this.gravityForce = 0.7;
 
 	this.runningDirection = 0;
 	this.runningSpeed = 5;
@@ -509,14 +512,8 @@ SpiderMan.prototype.stateImage = function() {
 
 	if (this.hasState("JUMP")) {
 		state = "JUMP";
-		if (this.jumpForce > 0) {
-			this.y -= this.jumpForce;
-			this.jumpForce -= this.gravityForce;
-		} else {
-			this.jumpForce = 0;
-			this.removeState("JUMP");
-			this.addState("FALL");
-		}
+		this.velocityY = -15;
+		this.removeState("JUMP");
 	}
 
 	if (this.hasState("RUNNING")) {
@@ -531,19 +528,9 @@ SpiderMan.prototype.stateImage = function() {
 			this.runningFrame %= this.runningFrames.length - 1;
 		}
 
-		this.x += this.runningDirection * this.runningSpeed;
-
-		if (this.x - this.game.cameraX < 0) this.x += this.runningSpeed; // dont allow going left
-		if (this.x - this.game.cameraX > 150) {
-			this.game.cameraX += this.runningDirection * this.runningSpeed;
-		}
-
-		var img = this.game.resources[state];
-
-		// if spiderman hits the wall (falls between them and hits it)
-		if (this.game.isRoofAtPoint(this.x + img.width * this.scale, this.y + img.height * this.scale - 1)) {
-			this.x -= this.runningDirection * this.runningSpeed;
-		}
+		this.velocityX = this.runningDirection * this.runningSpeed;
+	} else {
+		this.velocityX = 0;
 	}
 
 	if (this.hasState("SHOOT")) {
@@ -661,9 +648,8 @@ SpiderMan.prototype.respawn = function() {
 
 // function that gets called with global update function
 SpiderMan.prototype.update = function() {
-	if (this.keyIsDown(KEY.ARROW_UP) && !this.jumpForce && !this.hasState("FALL")) {
+	if (this.keyIsDown(KEY.ARROW_UP) && !this.hasState("FALL")) {
 		this.addState("JUMP");
-		this.jumpForce = 20;
 	}
 	if (this.keyIsDown(KEY.ARROW_RIGHT)) {
 		this.addState("RUNNING");
@@ -683,16 +669,18 @@ SpiderMan.prototype.update = function() {
 
 	var img = this.stateImage();
 
-	// if below this point is not a roof, fall down
-	if (!this.game.isRoofAtPoint(this.x, this.y + img.height * this.scale + 1)) {
-		this.y += 5;
-		this.addState("FALL");
-	}
+	this.velocityY += this.gravityForce;
+
+	this.y += this.velocityY;
+	this.x += this.velocityX;
+
+	this.addState("FALL");
 	
 	// if then it hits the bottom (or exceeds it)
 	var roof = this.game.isRoofAtPoint(this.x, this.y + img.height * this.scale);
 	if (roof) {
 		this.y = this.canvas.height - roof.height - img.height * this.scale;
+		this.velocityY = 0;
 		this.removeState("FALL");
 	}
 
@@ -700,6 +688,11 @@ SpiderMan.prototype.update = function() {
 	var y = this.y;
 	var width = img.width * this.scale;
 	var height = img.height * this.scale;
+
+	if (x < 0) this.x = 0; // dont allow going left
+	if (x > 150) {
+		this.game.cameraX += this.velocityX;
+	}
 
 	this.ctx.save();
 
@@ -766,7 +759,6 @@ function Roof(game, x, y) {
 	var shouldSpawnEnemy = Math.round(Math.random() * 100) > 20;
 	if (shouldSpawnEnemy) {
 		var enemy = new Enemy(this.game, {
-			name: "VENOM",
 			x: this.x + this.width / 2,
 		});
 		enemy.y = this.y - 1 - enemy.stateImg.height * enemy.scale;
@@ -810,16 +802,18 @@ function Enemy(game, opts) {
 };
 
 Enemy.prototype.shoot = function() {
+	var self = this;
 	var knife = this.game.resources.KNIFE;
 
 	var projectile = new Projectile(this.game);
 	projectile.name = "KNIFE";
 	projectile.damage = 1;
 
-	projectile.x = this.x;
-	projectile.y = this.y + this.stateImg.height / 4;
+	projectile.x = this.x - knife.width * this.scale / 2;
+	// so knifes height is divided by 4 because, 2 is for center, and another 2 is for 0.5 scale
+	projectile.y = this.y + (this.stateImg.height * this.scale / 2) - (knife.height * this.scale / 4);
 	projectile.update = function() {
-		this.ctx.drawImage(knife, this.x - this.game.cameraX, this.y, 50, 12.5);
+		this.ctx.drawImage(knife, this.x - this.game.cameraX, this.y, knife.width * self.scale / 2, knife.height * self.scale / 2);
 
 		this.x -= 10;
 	}
