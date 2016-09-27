@@ -28,21 +28,30 @@ var RESOURCES = {
 	"BACKGROUND"         : "images/background.jpg",
 	"ROOF"               : "images/wall.jpg",
 	"BUILDING"           : "images/building.png",
+	"SPIDER_HEAD"        : "images/spider-head.png",
+	"HEART"              : "images/heart.png",
+	"VENOM"              : "images/venom.png",
+	"KNIFE"              : "images/knife.png",
 };
 
 var AUDIO_RESOURCES = {
-	"FRIENDLY_SPIDERMAN"   : new Audio("audio/60-theme-song.mp3"),
 	"AMAZING_SPIDER_MAN_2" : new Audio("audio/amazing-spider-man-2.mp3"),
+	"FRIENDLY_SPIDERMAN"   : new Audio("audio/60-theme-song.mp3"),
 	"MOVIE_THEME"          : new Audio("audio/old-theme.mp3"),
 	"ANIMATED_SERIES"      : new Audio("audio/animated-series-theme.mp3"),
+	"SHOOT"                : new Audio("audio/shooting-web.wav"),
 };
 
 // this is basically Object.values(AUDIO_RESOURCES); (but that doens't exist so)
-var AUDIO_LOOP = Object.keys(AUDIO_RESOURCES).map(function(keyName) {
-	return AUDIO_RESOURCES[keyName];
-});
+var AUDIO_LOOP = [
+	"AMAZING_SPIDER_MAN_2",
+	"FRIENDLY_SPIDERMAN",
+	"MOVIE_THEME",
+	"ANIMATED_SERIES",
+];
 
 window.AUDIO_LOOP = AUDIO_LOOP;
+window.AUDIO_RESOURCES = AUDIO_RESOURCES;
 
 var KEY = {
 	ARROW_LEFT: 37,
@@ -54,9 +63,10 @@ var KEY = {
 	S: 87,
 	D: 68,
 	W: 87,
+	ESC: 27,
 };
 
-var RUNNING = {
+var DIRECTION = {
 	RIGHT: 1,
 	LEFT: -1,
 }
@@ -86,10 +96,13 @@ function SpidermanGame(opts) {
 		spiderman: null,
 		projectiles: [],
 		roofs: [],
+		enemies: [],
 	}; // object that contains information about the next scene
 }
 
-SpidermanGame.prototype.initialized = false;
+SpidermanGame.prototype.paused             = false;
+SpidermanGame.prototype.initialized        = false;
+SpidermanGame.prototype.soundEffects       = true;
 
 SpidermanGame.prototype.load = function() {
 	if (!this.options) return false;
@@ -118,21 +131,18 @@ SpidermanGame.prototype.load = function() {
 	});
 
 	for (var i = 0; i < AUDIO_LOOP.length; i++) {
-		AUDIO_LOOP[i].ontimeupdate = function() {
+		var soundName = AUDIO_LOOP[i];
+		var sound = AUDIO_RESOURCES[soundName];
+		sound.setAttribute("data-name", soundName);
+		sound.ontimeupdate = function() {
 			if (this.currentTime >= this.duration) {
-				var current = AUDIO_LOOP.indexOf(this);
+				var current = AUDIO_LOOP.indexOf(this.getAttribute("data-name"));
 				var next = (current + 1) % (AUDIO_LOOP.length);
 				
-				self.playAudio(AUDIO_LOOP[next]);
+				self.playSound(AUDIO_LOOP[next], false, 0);
 			}
 		}
 	}
-
-	var roof = new Roof(this);
-	roof.x = 4;
-
-	this.scene.spiderman = spiderman;
-	this.scene.roofs = [roof];
 
 	return new Promise(function(resolve, reject) {
 		var reourcesArray = [];
@@ -148,8 +158,12 @@ SpidermanGame.prototype.load = function() {
 
 		function loadNext() {
 			if (!reourcesArray[index]) {
+				var roof = new Roof(self, 0);
+
+				self.scene.spiderman = spiderman;
+				self.scene.roofs = [roof];
 				self.update();
-				self.playAudio(AUDIO_LOOP[0]);
+				// self.playSound(AUDIO_LOOP[0], false, 0);
 				return resolve();
 			}
 
@@ -168,22 +182,36 @@ SpidermanGame.prototype.load = function() {
 	});
 }
 
-SpidermanGame.prototype.playAudio = function(audio) {
-	this.pauseAudio(); // first pause all audios
+SpidermanGame.prototype.pause = function() {
+	this.paused = true;
+};
+
+SpidermanGame.prototype.unpause = function() {
+	this.paused = false;
+}
+
+SpidermanGame.prototype.playSound = function(audio, clone, currentTime) {
+	audio = audio && audio.play ? audio : AUDIO_RESOURCES[audio];
 
 	if (audio && audio.play) {
-		audio.play();
-		return;
-	}
+		if (clone) {
+			audio = audio.cloneNode(true);
+		}
 
-	if (AUDIO_RESOURCES[audio]) {
-		AUDIO_RESOURCES[audio].play();
+		if (currentTime != undefined) {
+			audio.currentTime = currentTime;
+		}
+
+		return audio.play();
 	}
 };
 
-SpidermanGame.prototype.pauseAudio = function() {
-	for (var audio in AUDIO_RESOURCES) {
-		AUDIO_RESOURCES[audio].currentTime = 0;
+SpidermanGame.prototype.pauseSound = function(audio) {
+	if (audio && audio.pause) {
+		return audio.pause();
+	}
+
+	if (AUDIO_RESOURCES[audio]) {
 		AUDIO_RESOURCES[audio].pause();
 	}
 }
@@ -213,30 +241,48 @@ SpidermanGame.prototype.drawRoofs = function() {
 	// if roof left the frame and was removed, add another one
 	if (roofs.length < 3) {
 		var lastRoof = roofs[roofs.length - 1];
-		var roof = new Roof(this);
-		roof.x = lastRoof.x + lastRoof.width + Math.round(Math.random() * 80) + 50; // the gap between roofs
+		var x = lastRoof.x + lastRoof.fullWidth + Math.round(Math.random() * 80) + 50;
+
+		var roof = new Roof(this, x);
 		this.addRoof(roof);
+		roofs[0].update();
 	}
 }
 
+SpidermanGame.prototype.drawEnemies = function() {
+	var enemies = this.scene.enemies;
+
+	for (var i = 0; i < enemies.length; i++) {
+		enemies[i].update();
+	}
+}
+
+SpidermanGame.prototype.drawPauseDisplay = function() {
+	// this.ctx.fillRect(this.canvas.width / 2 - 100, this.canvas.height / 2 - 100, 200, 200);
+
+	this.font = "20px Helvetica";
+	this.textAlign = "center";
+	this.ctx.fillText("Paused", this.canvas.width / 2, this.canvas.height - 30);
+}
+
 SpidermanGame.prototype.update = function() {
+	if (this.paused) {
+		return this.drawPauseDisplay();
+	}
+
 	// draw the scene
 	var scene = this.scene;
 	var spiderman = scene.spiderman;
 	var projectiles = scene.projectiles;
-	var roofs = scene.roofs;
 
 	// clear the canvas for re drawing
 	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 	this.drawBackground();
 	this.drawRoofs();
+	this.drawEnemies();
 
 	for (var i = 0; i < projectiles.length; i++) {
 		projectiles[i].update();
-	}
-
-	for (var i = 0; i < roofs.length; i++) {
-		roofs[i].update();
 	}
 
 	spiderman.update();
@@ -245,6 +291,18 @@ SpidermanGame.prototype.update = function() {
 	this.ctx.font = "20px Helvetica";
 	this.ctx.textAlign = "center";
 	this.ctx.fillText(this.score, this.canvas.width / 2, 30);
+
+	for (var i = 0; i < projectiles.length; i++) {
+		var projectile = projectiles[i];
+		var x = projectile.x;
+		var y = projectile.y;
+
+		var character = this.isCharacterAtPoint(x, y);
+		if (character) {
+			projectile.handleHitWithCharacter(character);
+			character.handleHitWithProjectile(projectile);
+		}
+	}
 
 	requestAnimFrame(this.update.bind(this));
 }
@@ -259,6 +317,19 @@ SpidermanGame.prototype.removeProjectile = function(projectile) {
 	var projectiles = this.scene.projectiles;
 	if (projectiles.indexOf(projectile) > -1) {
 		projectiles.splice(projectiles.indexOf(projectile), 1);
+	}
+}
+
+SpidermanGame.prototype.addEnemy = function(enemy) {
+	if (enemy instanceof Enemy) {
+		this.scene.enemies.push(enemy);
+	}
+}
+
+SpidermanGame.prototype.removeEnemy = function(enemy) {
+	var enemies = this.scene.enemies;
+	if (enemies.indexOf(enemy) > -1) {
+		enemies.splice(enemies.indexOf(enemy), 1);
 	}
 }
 
@@ -277,39 +348,79 @@ SpidermanGame.prototype.removeRoof = function(roof) {
 
 // checks if given point is roof
 SpidermanGame.prototype.isRoofAtPoint = function(x, y) {
+	x -= this.cameraX; // to move point relative to canvas
 	for (var i = 0; i < this.scene.roofs.length; i++) {
 		var roof = this.scene.roofs[i];
 
 		// since character is relative to the camera, calculate X of roof relative to camera as well
-		var roofX = roof.x - this.cameraX - 4;
+		var roofX = roof.x - this.cameraX;
 
-		if (roofX <= x && roofX + roof.width + 8 >= x && y >= roof.y) return roof;
+		if (roofX <= x && roofX + roof.fullWidth >= x && y >= roof.y) return roof;
 	}
 
 	return false;
 }
 
-SpidermanGame.prototype.gameover = function() {
+SpidermanGame.prototype.isCharacterAtPoint = function(x, y) {
+	// enemies + spiderman
+	var characters = this.scene.enemies.concat(this.spiderman);
+	x -= this.cameraX;
+
+	for (var i = 0; i < characters.length; i++) {
+		var character = characters[i];
+		var stateImg = character.stateImg || {};
+
+		var left = character.x - this.cameraX;
+		var top = character.y;
+		var right = left + stateImg.width * character.scale;
+		var bottom = top + stateImg.height * character.scale;
+
+		var isCharacter = 
+			   left   <= x // check left bound
+			&& top    <= y // top bound
+			&& right  >= x // right bound
+			&& bottom >= y; // bottom bound
+
+		if (isCharacter) return character;
+	}
+
+	return false;
+}
+
+SpidermanGame.prototype.restart = function() {
 	var roof = new Roof(this);
-	roof.x = 4;
+	roof.x = 0;
+
+	this.scene.projectiles = [];
+	this.scene.roofs = [roof];
+	this.scene.enemies = [];
+	this.cameraX = 0;
+	this.score = 0;
+}
+
+SpidermanGame.prototype.gameover = function() {
+	this.restart();
 
 	this.spiderman = new SpiderMan(this);
 	this.scene.spiderman = this.spiderman;
-	this.scene.projectiles = [];
-	this.scene.roofs = [roof];
-	this.cameraX = 0;
-	this.score = 0;
 }
 
 function SpiderMan(game) {
 	this.game = game;
 	this.canvas = game.canvas;
 	this.ctx = game.ctx;
+	this.name = "SPIDER_MAN";
 	this.x = 0;
 	this.y = 0; 
 	this.states = ["STANDING"];
 	this.scale = 0.5;
 	this.keydowns = [];
+	this.health = 5;
+	this.maxHealth = 5;
+	this.respawns = 3;
+
+	// to regenerate every N fps (approximately N / 60 seconds)
+	this.regenerationSpeed = 600;
 
 	// how many frames have passed
 	this.frame = 0;
@@ -325,6 +436,7 @@ function SpiderMan(game) {
 	this.runningSpeed = 5;
 
 	this.shootingFrame = 0;
+	this.wasDamagedOnPreviousFrame = false;
 }
 
 SpiderMan.prototype.keyIsDown = function(keyCode) {
@@ -358,6 +470,13 @@ SpiderMan.prototype.removeState = function(state) {
 	if (this.hasState(state)) this.states.splice(this.states.indexOf(state), 1);
 }
 
+SpiderMan.prototype.handleHitWithProjectile = function(projectile) {
+	if (projectile.name != "WEB") {
+		this.health -= projectile.damage;
+		this.wasDamagedOnPreviousFrame = true;
+	}
+}
+
 // returns the image to draw in position of spiderman
 SpiderMan.prototype.stateImage = function() {
 	var state = "STANDING";
@@ -377,7 +496,7 @@ SpiderMan.prototype.stateImage = function() {
 	if (this.hasState("SHOOT")) {
 		state = "SHOOT";
 		if (this.shootingFrame % 20 === 0) {
-			this.shoot(this.game.resources[this.state] || this.game.resources["STANDING"]);
+			this.shoot(this.game.resources.SHOOT);
 		}
 		this.shootingFrame++;
 	}
@@ -396,10 +515,9 @@ SpiderMan.prototype.stateImage = function() {
 
 		this.x += this.runningDirection * this.runningSpeed;
 
-		if (this.x < 0) this.x = 0;
-		if (this.x > 150) {
-			this.x = 150;
-			this.game.cameraX += 5;
+		if (this.x - this.game.cameraX < 0) this.x += this.runningSpeed; // dont allow going left
+		if (this.x - this.game.cameraX > 150) {
+			this.game.cameraX += this.runningDirection * this.runningSpeed;
 		}
 
 		var img = this.game.resources[state];
@@ -410,7 +528,10 @@ SpiderMan.prototype.stateImage = function() {
 		}
 	}
 
-	return this.game.resources[state] || this.game.resources["STANDING"];
+	var image = this.game.resources[state] || this.game.resources["STANDING"];
+	this.stateImg = image; // so that stateImage is accessible
+
+	return image;
 }
 
 SpiderMan.prototype.keydown = function(keyCode) {
@@ -428,28 +549,89 @@ SpiderMan.prototype.keyup = function(keyCode) {
 	}
 }
 
+SpiderMan.prototype.regenerate = function() {
+	// if this is 300th fps, regenerate
+	if (this.frame % this.regenerationSpeed === 0 && this.health < this.maxHealth) {
+		this.health = Math.round(this.health + 1);
+	}
+}
+
 SpiderMan.prototype.shoot = function(img) {
 	var direction = this.runningDirection || 1;
 	var web = new Projectile(this.game);
-	web.x = this.x + img.width * this.scale;
-	if (this.runningDirection == RUNNING.LEFT) {
-		web.x = this.x; // left hand will be the X position of the spiderman
+
+	web.name = "WEB";
+	web.damage = 2;
+
+	web.x = this.x + img.width * this.scale + 1;
+	if (this.runningDirection == DIRECTION.LEFT) {
+		web.x = this.x - 1; // left hand will be the X position of the spiderman
 	}
 	web.y = this.y + img.height * this.scale / 2;
 
-	web.update = function() {
-		this.ctx.fillStyle = "white";
-		// well, the X is calculated but the X is center of the web, so we have to move it to right,
-		// or to left by 10 pixels depending on direction
-		this.ctx.drawImage(this.game.resources["WEB_PROJECTILE"], this.x + 10 * this.spiderman.runningDirection, this.y - 10, 20, 20);
+	web.update = function() {            
+		var x = this.x - this.game.cameraX;
+		var y = this.y;
+
+		if (direction == DIRECTION.LEFT) {
+			// if spiderman is turned to left,
+			// move web by 20pixels since X coordinates start from LEFT to right
+			x -= 20;
+		}
+
+		this.ctx.drawImage(this.game.resources["WEB_PROJECTILE"], x, y - 10, 20, 20);
 
 		this.x += direction * 10;
-		if (this.x >= this.canvas.width) this.remove();
+		if (this.x - this.game.cameraX >= this.canvas.width || this.x <= 0) this.remove();
 	}
 	web.spiderman = this;
 
 	this.game.addProjectile(web);
+	if (this.game.soundEffects == true) {
+		this.game.playSound("SHOOT", true, 0);
+	}
 }
+
+SpiderMan.prototype.drawHealthbar = function() {
+	var heart = {
+		width: 25,
+		height: 25,
+	};
+
+	for (var i = 0; i < this.health; i++) {
+		// (i + 1) * 5 for every 5 pixel padding per heart
+		var x = i * heart.width + 5 * (i + 1);
+		var y = 5;
+		this.ctx.drawImage(this.game.resources.HEART, x, y, heart.width, heart.height);
+	}
+}
+
+SpiderMan.prototype.drawRespawnbar = function() {
+	var head = {
+		width: 25,
+		height: 25,
+	}
+
+	for (var i = 0; i < this.respawns; i++) {
+		// drawing from right to left
+		var x = (head.width + 5) * (i + 1)
+		x = this.canvas.width - x;
+
+		var y = 5;
+		this.ctx.drawImage(this.game.resources.SPIDER_HEAD, x, y, head.width, head.height);
+	}
+}
+
+SpiderMan.prototype.respawn = function() {
+	if (this.respawns <= 0) {
+		this.game.gameover();
+	} else {
+		this.respawns--;
+		this.x = 0;
+		this.health = this.maxHealth;
+		this.game.restart();
+	}
+};
 
 // function that gets called with global update function
 SpiderMan.prototype.update = function() {
@@ -459,18 +641,18 @@ SpiderMan.prototype.update = function() {
 	}
 	if (this.keyIsDown(KEY.ARROW_RIGHT)) {
 		this.addState("RUNNING");
-		this.runningDirection = RUNNING.RIGHT;
+		this.runningDirection = DIRECTION.RIGHT;
 	}
 	if (this.keyIsDown(KEY.ARROW_LEFT)) {
 		this.addState("RUNNING");
-		this.runningDirection = RUNNING.LEFT;
+		this.runningDirection = DIRECTION.LEFT;
 	}
 	if (this.keyIsDown(KEY.SPACEBAR)) {
 		this.addState("SHOOT");
 	}
 
-	if (this.y >= this.canvas.height) {
-		this.game.gameover();
+	if (this.y >= this.canvas.height || !this.health) {
+		this.respawn();
 	}
 
 	var img = this.stateImage();
@@ -488,7 +670,7 @@ SpiderMan.prototype.update = function() {
 		this.removeState("FALL");
 	}
 
-	var x = this.x;
+	var x = this.x - this.game.cameraX;
 	var y = this.y;
 	var width = img.width * this.scale;
 	var height = img.height * this.scale;
@@ -496,7 +678,7 @@ SpiderMan.prototype.update = function() {
 	this.ctx.save();
 
 	// if the spiderman is running to the left, flip him
-	if (this.runningDirection == RUNNING.LEFT) {
+	if (this.runningDirection == DIRECTION.LEFT) {
 		this.ctx.scale(-1, 1);
 		x *= -1;
 		x -= width;
@@ -504,12 +686,27 @@ SpiderMan.prototype.update = function() {
 
 	this.ctx.drawImage(img, x, y, width, height);
 	this.ctx.restore();
+
+	if (this.wasDamagedOnPreviousFrame) {
+		this.wasDamagedOnPreviousFrame = false;
+
+		this.ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+		this.ctx.fillRect(x, y, width, height);
+	}
+
+	this.regenerate();
+	this.drawHealthbar();
+	this.drawRespawnbar();
+
 	this.frame++;
 }
 
 function Projectile(game) {
 	this.x = 0;
 	this.y = 0;
+
+	this.damage = 0;
+	this.name = "UNKNOWN";
 
 	this.canvas = game.canvas;
 	this.ctx = game.ctx;
@@ -523,6 +720,10 @@ Projectile.prototype.remove = function() {
 	this.game.removeProjectile(this);
 }
 
+Projectile.prototype.handleHitWithCharacter = function() {
+	this.remove();
+}
+
 function Roof(game, x, y) {
 	this.game = game;
 	this.canvas = game.canvas;
@@ -532,8 +733,20 @@ function Roof(game, x, y) {
 	this.height = Math.round(Math.random() * 50) + 100;
 	this.fullWidth = this.width + 15; // 15 pixels for right end of the roof top
 
-	this.x = 0;
+	this.x = x || 0;
 	this.y = this.canvas.height - this.height;
+
+	// 33% chance?
+	var shouldSpawnEnemy = Math.round(Math.random() * 100) > 20;
+	if (shouldSpawnEnemy) {
+		var enemy = new Enemy(this.game, {
+			name: "VENOM",
+			x: this.x + this.width / 2,
+		});
+		enemy.y = this.y - 1 - enemy.stateImg.height * enemy.scale;
+		this.game.addEnemy(enemy);
+		this.enemy = enemy;
+	}
 }
 
 Roof.prototype.update = function() {
@@ -545,8 +758,124 @@ Roof.prototype.update = function() {
 
 	if (renderX + this.width <= 0) {
 		this.game.removeRoof(this);
-		// when this roof gets deleted, it means it has been jumped over
-		this.game.score++;
+		this.game.removeEnemy(this.enemy);
+	}
+}
+
+
+function Enemy(game, opts) {
+	opts = opts || {};
+
+	this.game = game;
+	this.canvas = game.canvas;
+	this.ctx = game.ctx;
+
+	this.health = opts.health || 4;
+	this.maxHealth = opts.maxHealth || this.health;
+	this.name = opts.name || "THUG";
+	this.x = opts.x || this.canvas.width - 50;
+	this.y = opts.y || 0;
+	// just to control the scaling of an image
+	this.scale = 0.5;
+	this.stateImg = this.game.resources[this.name];
+
+	this.wasDamagedOnPreviousFrame = false;
+	this.frame = 0;
+};
+
+Enemy.prototype.shoot = function() {
+	var knife = this.game.resources.KNIFE;
+
+	var projectile = new Projectile(this.game);
+	projectile.name = "KNIFE";
+	projectile.damage = 1;
+
+	projectile.x = this.x;
+	projectile.y = this.y + this.stateImg.height / 4;
+	projectile.update = function() {
+		this.ctx.drawImage(knife, this.x - this.game.cameraX, this.y, 50, 12.5);
+
+		this.x -= 10;
+	}
+
+	this.game.addProjectile(projectile);
+}
+
+Enemy.prototype.drawHealthbar = function() {
+	var healthbar = {
+		height: 5,
+		width: 100,
+		style: "red",
+		borderWidth: 2,
+		borderStyle: "black"
+	};
+
+	var x = this.x - this.game.cameraX;
+	x -= healthbar.width / 2; // to center the healthbar with the X of the character
+	x += this.stateImg.width * this.scale / 2; // to center the healthbar with the X of characters center
+
+	var y      = this.y - (healthbar.height + healthbar.borderWidth * 2) - 5;
+	var width  = healthbar.width * this.health / this.maxHealth; // get the width for current health
+	var height = healthbar.height;
+
+	var borderX      = x - healthbar.borderWidth;
+	var borderY      = y - healthbar.borderWidth;
+	var borderWidth  = healthbar.width + healthbar.borderWidth * 2;
+	var borderHeight = healthbar.height + healthbar.borderWidth * 2;
+
+	this.ctx.fillStyle = healthbar.borderStyle;
+	this.ctx.fillRect(borderX, borderY, borderWidth, borderHeight);
+
+	this.ctx.fillStyle = healthbar.style;
+	this.ctx.fillRect(x, y, width, height);
+}
+
+Enemy.prototype.update = function() {
+	var img = this.game.resources[this.name];
+	this.stateImg = img;
+
+	if (this.health <= 0) {
+		this.remove();
+	}
+
+	this.drawHealthbar();
+
+	var x = this.x - this.game.cameraX;
+	var y = this.y;
+	var width = img.width * this.scale;
+	var height = img.height * this.scale;
+
+	this.ctx.save();
+	this.ctx.scale(-1, 1);
+
+	this.ctx.drawImage(this.game.resources[this.name], (x + width) * -1, y, width, height);
+	this.ctx.restore();
+
+	if (this.wasDamagedOnPreviousFrame) {
+		this.wasDamagedOnPreviousFrame = false;
+		this.ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
+		this.ctx.fillRect(x, y, width, height);
+	}
+
+	var isInScreen = this.x - this.game.cameraX <= this.canvas.width;
+
+	if (this.frame % 100 === 0 && isInScreen) {
+		console.log("SHOOT");
+		this.shoot();
+	}
+
+	this.frame++;
+}
+
+Enemy.prototype.remove = function() {
+	this.game.score++;
+	this.game.removeEnemy(this);	
+}
+
+Enemy.prototype.handleHitWithProjectile = function(projectile) {
+	if (projectile.name == "WEB") {
+		this.health -= projectile.damage;
+		this.wasDamagedOnPreviousFrame = true;
 	}
 }
 
