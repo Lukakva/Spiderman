@@ -163,7 +163,7 @@ SpidermanGame.prototype.load = function() {
 				self.scene.spiderman = spiderman;
 				self.scene.roofs = [roof];
 				self.update();
-				// self.playSound(AUDIO_LOOP[0], false, 0);
+				self.playSound(AUDIO_LOOP[0], false, 0);
 				return resolve();
 			}
 
