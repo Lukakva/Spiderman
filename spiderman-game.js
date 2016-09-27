@@ -678,10 +678,16 @@ SpiderMan.prototype.update = function() {
 	
 	// if then it hits the bottom (or exceeds it)
 	var roof = this.game.isRoofAtPoint(this.x, this.y + img.height * this.scale);
+
+	// check if spiderman is standing on the ground (roof)
 	if (roof) {
 		this.y = this.canvas.height - roof.height - img.height * this.scale;
 		this.velocityY = 0;
 		this.removeState("FALL");
+	} else if (this.game.isRoofAtPoint(this.x + img.width * this.scale + 1, this.y + img.height * this.scale - 1)) {
+		// check if spiderman's right side hit the roof
+		this.x -= this.velocityX;
+		this.velocityX = 0;
 	}
 
 	var x = this.x - this.game.cameraX;
