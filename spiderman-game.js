@@ -13,25 +13,25 @@ var requestAnimationFrame = (function() {
 window.requestAnimFrame = requestAnimationFrame;
 
 var RESOURCES = {
-	"JUMP"               : "images/jump.png",
-	"RUNNING_CHANGE_STEP": "images/running-change-step.png",
-	"RUNNING_LEFT_STEP"  : "images/running-left-step.png",
-	"RUNNING_RIGHT_STEP" : "images/running-right-step.png",
-	"SHOOT_CHANGE_STEP"  : "images/shoot-change-step.png",
-	"SHOOT_JUMP"         : "images/shoot-jump.png",
-	"SHOOT_LEFT-STEP"    : "images/shoot-left-step.png",
-	"SHOOT_RIGHT-STEP"   : "images/shoot-right-step.png",
-	"SHOOT"              : "images/shoot.png",
-	"SLIDE"              : "images/slide.png",
-	"STANDING"           : "images/standing.png",
-	"WEB_PROJECTILE"     : "images/web.png",
+	"JUMP"               : "images/jump.png?v=1",
+	"RUNNING_CHANGE_STEP": "images/running-change-step.png?v=1",
+	"RUNNING_LEFT_STEP"  : "images/running-left-step.png?v=1",
+	"RUNNING_RIGHT_STEP" : "images/running-right-step.png?v=1",
+	"SHOOT_CHANGE_STEP"  : "images/shoot-change-step.png?v=1",
+	"SHOOT_JUMP"         : "images/shoot-jump.png?v=1",
+	"SHOOT_LEFT-STEP"    : "images/shoot-left-step.png?v=1",
+	"SHOOT_RIGHT-STEP"   : "images/shoot-right-step.png?v=1",
+	"SHOOT"              : "images/shoot.png?v=1",
+	"SLIDE"              : "images/slide.png?v=1",
+	"STANDING"           : "images/standing.png?v=1",
+	"WEB_PROJECTILE"     : "images/web.png?v=1",
 	"BACKGROUND"         : "images/background.jpg",
 	"ROOF"               : "images/wall.jpg",
-	"BUILDING"           : "images/building.png",
-	"SPIDER_HEAD"        : "images/spider-head.png",
-	"HEART"              : "images/heart.png",
-	"VENOM"              : "images/venom.png",
-	"KNIFE"              : "images/knife.png",
+	"BUILDING"           : "images/building.png?v=1",
+	"SPIDER_HEAD"        : "images/spider-head.png?v=1",
+	"HEART"              : "images/heart.png?v=1",
+	"VENOM"              : "images/venom.png?v=1",
+	"KNIFE"              : "images/knife.png?v=1",
 };
 
 var AUDIO_RESOURCES = {
@@ -143,6 +143,13 @@ SpidermanGame.prototype.load = function() {
 			}
 		}
 	}
+
+	// to show that canvas is here, but is being loaded
+	this.canvas.style.backgroundColor = "black";
+	this.ctx.font = "30px Helvetica";
+	this.ctx.textAlign = "center";
+	this.ctx.fillStyle = "white";
+	this.ctx.fillText("Loading...", this.canvas.width / 2, this.canvas.height / 2);
 
 	return new Promise(function(resolve, reject) {
 		var reourcesArray = [];
@@ -429,7 +436,7 @@ function SpiderMan(game) {
 	this.runningShootingFrames = ["SHOOT_RIGHT-STEP", "SHOOT_CHANGE_STEP", "SHOOT_LEFT-STEP", "SHOOT_CHANGE_STEP"];
 	this.runningFrame = 0;
 
-	this.gravityForce = 5;
+	this.gravityForce = 1;
 	this.jumpForce = 0;
 
 	this.runningDirection = 0;
@@ -483,22 +490,14 @@ SpiderMan.prototype.stateImage = function() {
 
 	if (this.hasState("JUMP")) {
 		state = "JUMP";
-		if (this.jumpForce > 1) {
-			this.y -= this.gravityForce * 4;
-			this.jumpForce -= this.gravityForce * 2;
+		if (this.jumpForce > 0) {
+			this.y -= this.jumpForce;
+			this.jumpForce -= this.gravityForce;
 		} else {
 			this.jumpForce = 0;
 			this.removeState("JUMP");
 			this.addState("FALL");
 		}
-	}
-
-	if (this.hasState("SHOOT")) {
-		state = "SHOOT";
-		if (this.shootingFrame % 20 === 0) {
-			this.shoot(this.game.resources.SHOOT);
-		}
-		this.shootingFrame++;
 	}
 
 	if (this.hasState("RUNNING")) {
@@ -526,6 +525,14 @@ SpiderMan.prototype.stateImage = function() {
 		if (this.game.isRoofAtPoint(this.x + img.width * this.scale, this.y + img.height * this.scale - 1)) {
 			this.x -= this.runningDirection * this.runningSpeed;
 		}
+	}
+
+	if (this.hasState("SHOOT")) {
+		if (!this.hasState("RUNNING")) state = "SHOOT";
+		if (this.shootingFrame % 20 === 0) {
+			this.shoot(this.game.resources.SHOOT);
+		}
+		this.shootingFrame++;
 	}
 
 	var image = this.game.resources[state] || this.game.resources["STANDING"];
@@ -637,7 +644,7 @@ SpiderMan.prototype.respawn = function() {
 SpiderMan.prototype.update = function() {
 	if (this.keyIsDown(KEY.ARROW_UP) && !this.jumpForce && !this.hasState("FALL")) {
 		this.addState("JUMP");
-		this.jumpForce = 100;
+		this.jumpForce = 20;
 	}
 	if (this.keyIsDown(KEY.ARROW_RIGHT)) {
 		this.addState("RUNNING");
@@ -729,7 +736,7 @@ function Roof(game, x, y) {
 	this.canvas = game.canvas;
 	this.ctx = game.ctx;
 
-	this.width = Math.round(Math.random() * this.canvas.width) + 200;
+	this.width = Math.round(Math.random() * (this.game.resources.BUILDING.width - 200)) + 200;
 	this.height = Math.round(Math.random() * 50) + 100;
 	this.fullWidth = this.width + 15; // 15 pixels for right end of the roof top
 
@@ -860,7 +867,6 @@ Enemy.prototype.update = function() {
 	var isInScreen = this.x - this.game.cameraX <= this.canvas.width;
 
 	if (this.frame % 100 === 0 && isInScreen) {
-		console.log("SHOOT");
 		this.shoot();
 	}
 
