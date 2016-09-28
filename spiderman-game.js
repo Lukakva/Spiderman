@@ -704,6 +704,14 @@ SpiderMan.prototype.shoot = function(img) {
 		this.x += direction * 10;
 		if (this.x - this.game.cameraX >= this.canvas.width || this.x <= 0) this.remove();
 	}
+
+	web.handleHitWithCharacter = function(character) {
+		// somtimes projectile is being hit by the spiderman ON launch
+		// the best way is probably to launch it better but for now, i'll just make sure
+		// it doesn't get destroyed on launch
+		if (character.name != "SPIDER_MAN") return this.remove();
+	}
+
 	web.spiderman = this;
 
 	this.game.addProjectile(web);
