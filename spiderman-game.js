@@ -141,11 +141,11 @@ SpidermanGame.prototype.load = function() {
 	var menu = parser.parseFromString(
 	// trying to have long class names to avoid any possible conflits
 	'<div class="spiderman-game-menu-container">' +
-		'<div class="spiderman-game-menu-title">Paused</div>' +
-		'<div class="spiderman-game-menu-button spiderman-game-menu-button-resume">Resume</div>' +
-		'<div class="spiderman-game-menu-button spiderman-game-menu-button-mute-sounds">Mute Sounds</div>' +
-		'<div class="spiderman-game-menu-button spiderman-game-menu-button-mute-music">Mute Music</div>' +
-		'<div class="spiderman-game-menu-button spiderman-game-menu-button-mute-slowmotion">Toggle Slowmotion</div>' +
+		'<div class="spiderman-game-menu-title">PAUSED</div>' +
+		'<div class="spiderman-game-menu-button spiderman-game-menu-button-resume">RESUME</div>' +
+		'<div class="spiderman-game-menu-button spiderman-game-menu-button-mute-sounds">MUTE SOUNDS</div>' +
+		'<div class="spiderman-game-menu-button spiderman-game-menu-button-mute-music">MUTE MUSIC</div>' +
+		'<div class="spiderman-game-menu-button spiderman-game-menu-button-mute-slowmotion">TOGGLE SLOWMOTION</div>' +
 	'</div>', 'text/html');
 	menu = menu.body.firstChild;
 	menu.style.display = "none";
@@ -156,20 +156,20 @@ SpidermanGame.prototype.load = function() {
 	menu.querySelector(".spiderman-game-menu-button-mute-sounds").onclick = function() {
 		if (self.soundEffects) {
 			self.soundEffects = false;
-			this.innerHTML = "Unmute Sounds";
+			this.innerHTML = "UNMUTE SOUNDS";
 		} else {
 			self.soundEffects = true;
-			this.innerHTML = "Mute Sounds";
+			this.innerHTML = "MUTE SOUNDS";
 		}
 	}
 
 	menu.querySelector(".spiderman-game-menu-button-mute-music").onclick = function() {
 		if (self.muted) {
 			self.unmute();
-			this.innerHTML = "Mute Music";
+			this.innerHTML = "MUTE MUSIC";
 		} else {
 			self.mute();
-			this.innerHTML = "Unmute Music";
+			this.innerHTML = "UNMUTE MUSIC";
 		}
 	}
 
