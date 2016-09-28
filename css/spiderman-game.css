@@ -1,0 +1,74 @@
+@font-face {
+	font-family: SpidermanGamePixelFont;
+	src: url(../fonts/pixel.otf);
+}
+
+.spiderman-game-canvas-container {
+	position: relative;
+}
+
+.spiderman-game-menu-container,
+.spiderman-game-menu-container * {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+.spiderman-game-menu-container {
+	position: absolute;
+	display: none;
+	height: auto;
+	width: 120px;
+
+	-webkit-transform: translate(-50%, -50%);
+	-moz-transform: translate(-50%, -50%);
+	-ms-transform: translate(-50%, -50%);
+	-o-transform: translate(-50%, -50%);
+	transform: translate(-50%, -50%);
+}
+
+.spiderman-game-menu-title {
+	text-align: center;
+	font-size: 20px;
+	line-height: 60px;
+	font-family: SpidermanGamePixelFont;
+	color: white;
+	display: block;
+	width: 100%;
+	padding: 5px;
+}
+
+.spiderman-game-menu-button {
+    width: 100%;
+    padding: 2.5px;
+    margin: 0 auto;
+    line-height: 30px;
+    background: #cc1820;
+    border-bottom: 5px solid rgb(152, 37, 42);
+    font-size: 15px;
+    text-align: center;
+    font-family: SpidermanGamePixelFont;
+    color: blue;
+    cursor: default;
+    color: white;
+    position: relative;
+
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+    margin-top: 5px;
+}
+
+.spiderman-game-menu-button:hover {
+	background: #dc0e18;
+    border-bottom: 5px solid rgb(175, 30, 36);
+}
+
+.spiderman-game-menu-button:active {
+	background: #a72329;
+	border-bottom: none;
+	margin-top: 10px;
+}
