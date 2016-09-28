@@ -434,7 +434,7 @@ SpidermanGame.prototype.update = function() {
 	spiderman.update();
 
 	this.ctx.fillStyle = "white";
-	this.ctx.font = "20px Helvetica";
+	this.ctx.font = "20px SpidermanGamePixelFont, Monospace, Helvetica";
 	this.ctx.textAlign = "center";
 	this.ctx.fillText(this.score, this.canvas.width / 2, 30);
 
@@ -537,6 +537,8 @@ SpidermanGame.prototype.restart = function() {
 	var roof = new Roof(this);
 	roof.x = 0;
 
+	this.spiderman = new SpiderMan(this);
+	this.scene.spiderman = this.spiderman;
 	this.scene.projectiles = [];
 	this.scene.roofs = [roof];
 	this.scene.enemies = [];
@@ -563,7 +565,6 @@ function SpiderMan(game) {
 	this.keydowns = [];
 	this.health = 5;
 	this.maxHealth = 5;
-	this.respawns = 3;
 
 	this.velocityX = 0;
 	this.velocityY = 0;
@@ -758,34 +759,6 @@ SpiderMan.prototype.drawHealthbar = function() {
 	}
 }
 
-SpiderMan.prototype.drawRespawnbar = function() {
-	var head = {
-		width: 25,
-		height: 25,
-	}
-
-	for (var i = 0; i < this.respawns; i++) {
-		// drawing from right to left
-		var x = (head.width + 5) * (i + 1)
-		x = this.canvas.width - x;
-
-		var y = 5;
-		this.ctx.drawImage(this.game.resources.SPIDER_HEAD, x, y, head.width, head.height);
-	}
-}
-
-SpiderMan.prototype.respawn = function() {
-	console.log(console.trace());
-	if (this.respawns <= 0) {
-		this.game.gameover();
-	} else {
-		this.respawns--;
-		this.x = 0;
-		this.health = this.maxHealth;
-		this.game.restart();
-	}
-};
-
 // function that gets called with global update function
 SpiderMan.prototype.update = function() {
 	if (this.keyIsDown(KEY.ARROW_UP) && !this.hasState("FALL")) {
@@ -804,8 +777,7 @@ SpiderMan.prototype.update = function() {
 	}
 
 	if (this.y >= this.canvas.height || !this.health) {
-		this.y = 0;
-		this.respawn();
+		this.game.restart();
 	}
 
 	var img = this.stateImage();
@@ -870,7 +842,6 @@ SpiderMan.prototype.update = function() {
 
 	this.regenerate();
 	this.drawHealthbar();
-	this.drawRespawnbar();
 
 	this.frame++;
 }
