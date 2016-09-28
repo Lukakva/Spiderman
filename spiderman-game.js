@@ -388,7 +388,7 @@ SpidermanGame.prototype.drawRoofs = function() {
 	// if roof left the frame and was removed, add another one
 	if (roofs.length < 3) {
 		var lastRoof = roofs[roofs.length - 1];
-		var x = lastRoof.x + lastRoof.fullWidth + Math.round(Math.random() * 80) + 50;
+		var x = lastRoof.x + lastRoof.fullWidth + Math.round(Math.random() * 50) + 150;
 
 		var roof = new Roof(this, x);
 		this.addRoof(roof);
@@ -766,6 +766,7 @@ SpiderMan.prototype.drawRespawnbar = function() {
 }
 
 SpiderMan.prototype.respawn = function() {
+	console.log(console.trace());
 	if (this.respawns <= 0) {
 		this.game.gameover();
 	} else {
@@ -794,6 +795,7 @@ SpiderMan.prototype.update = function() {
 	}
 
 	if (this.y >= this.canvas.height || !this.health) {
+		this.y = 0;
 		this.respawn();
 	}
 
@@ -809,18 +811,28 @@ SpiderMan.prototype.update = function() {
 		this.game.cameraX += this.velocityX;
 	}
 	
-	// if then it hits the bottom (or exceeds it)
-	var roof = this.game.isRoofAtPoint(this.x, this.y + img.height * this.scale);
+	// check if coordinates are on the roof, before increasing it by velocityX, because it might BE inside the building
+	// after velocityX
+	// check if left side is on the roof
+	var roofLeft = this.game.isRoofAtPoint(this.x - this.velocityX, this.y + img.height * this.scale + 1);
+	// check if right X hit the roof
+	var roofRight = this.game.isRoofAtPoint(this.x + img.width * this.scale - this.velocityX, this.y + img.height * this.scale + 1);
 
 	// check if spiderman is standing on the ground (roof)
-	if (roof) {
-		this.y = this.canvas.height - roof.height - img.height * this.scale;
-		this.velocityY = 0;
-		this.removeState("FALL");
-	} else if (this.game.isRoofAtPoint(this.x + img.width * this.scale + 1, this.y + img.height * this.scale - 1)) {
-		// check if spiderman's right side hit the roof
-		this.x -= this.velocityX;
-		this.velocityX = 0;
+	if (roofLeft || roofRight) {
+		var roof = roofLeft || roofRight;
+
+		// since velocity might kinda make the spiderman go INSIDE the wall by adding too much Y,
+		// we'll just check if spider's y is INSIDE the wall just because of the velocityY
+		// just to make sure that spider is actually on the roof
+		if (roof.y + this.velocityY <= this.y) {
+			this.x -= this.velocityX;
+			this.velocityX = 0;
+		} else {
+			this.y = this.canvas.height - roof.height - img.height * this.scale;
+			this.velocityY = 0;
+			this.removeState("FALL");
+		}
 	}
 
 	var x = this.x - this.game.cameraX;
