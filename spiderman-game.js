@@ -62,9 +62,6 @@ var AUDIO_LOOP = [
 	"ANIMATED_SERIES",
 ];
 
-window.AUDIO_LOOP = AUDIO_LOOP;
-window.AUDIO_RESOURCES = AUDIO_RESOURCES;
-
 var KEY = {
 	ARROW_LEFT: 37,
 	ARROW_UP: 38,
@@ -881,8 +878,8 @@ function Roof(game, x, y) {
 	this.x = x || 0;
 	this.y = this.canvas.height - this.height;
 
-	// 33% chance?
-	var shouldSpawnEnemy = Math.round(Math.random() * 100) > 20;
+	// 70% chance?
+	var shouldSpawnEnemy = Math.round(Math.random() * 100) >= 30;
 	if (shouldSpawnEnemy) {
 		var enemy = new Enemy(this.game, {
 			x: this.x + this.width / 2,
@@ -1025,5 +1022,9 @@ Enemy.prototype.handleHitWithProjectile = function(projectile) {
 }
 
 window.SpidermanGame = SpidermanGame;
+window.Projectile    = Projectile;
+window.SpiderMan     = SpiderMan;
+window.Enemy         = Enemy;
+window.Roof          = Roof;
 
 })(window, document);
