@@ -388,7 +388,7 @@ SpidermanGame.prototype.drawRoofs = function() {
 	// if roof left the frame and was removed, add another one
 	if (roofs.length < 3) {
 		var lastRoof = roofs[roofs.length - 1];
-		var x = lastRoof.x + lastRoof.fullWidth + Math.round(Math.random() * 50) + 150;
+		var x = lastRoof.x + lastRoof.fullWidth + Math.round(Math.random() * 50) + 100;
 
 		var roof = new Roof(this, x);
 		this.addRoof(roof);
