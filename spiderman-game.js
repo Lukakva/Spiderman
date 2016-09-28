@@ -215,6 +215,13 @@ SpidermanGame.prototype.load = function() {
 		self.spiderman.keyup(keyCode);
 	});
 
+	window.addEventListener("resize", function() {
+		// resizing might change the canvas position, re position the menu if it is visible
+		if (self.paused) {
+			self.showMenu();
+		}
+	});
+
 	for (var i = 0; i < AUDIO_LOOP.length; i++) {
 		var soundName = AUDIO_LOOP[i];
 		var sound = AUDIO_RESOURCES[soundName];
@@ -316,17 +323,21 @@ SpidermanGame.prototype.unmute = function() {
 	}
 }
 
-SpidermanGame.prototype.pause = function() {
-	this.paused = true;
-
+SpidermanGame.prototype.showMenu = function() {
 	var pauseMenu = this.pauseMenu;
 
-	var left = this.canvas.offsetLeft;
-	var top = this.canvas.offsetTop;
+	var canvasRect = this.canvas.getBoundingClientRect(); // includes CSS translations
+	var left = canvasRect.left;
+	var top = canvasRect.top;
 	this.pauseMenu.style.display = "block";
 
 	this.pauseMenu.style.left = left + this.canvas.width / 2;
 	this.pauseMenu.style.top = top + this.canvas.height / 2;
+}
+
+SpidermanGame.prototype.pause = function() {
+	this.paused = true;
+	this.showMenu();
 };
 
 SpidermanGame.prototype.unpause = function() {
