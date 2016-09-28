@@ -86,6 +86,9 @@ var DIRECTION = {
 function SpidermanGame(opts) {
 	var options = {
 		canvas: "canvas",
+		score: 0,
+		muted: false,
+		soundEffects: true,
 	};
 
 	opts = opts || {};
@@ -94,6 +97,8 @@ function SpidermanGame(opts) {
 		if (opts.hasOwnProperty(option)) {
 			options[option] = opts[option];
 		}
+
+		this[option] = options[option];
 	}
 
 	// how many frames have passed
@@ -101,9 +106,8 @@ function SpidermanGame(opts) {
 	this.resources = {};
 
 	this.cameraX = 0;
-	this.score = 0;
+	this.score = this.score || 0;
 
-	this.options = options;
 	this.scene = {
 		spiderman: null,
 		projectiles: [],
@@ -120,12 +124,11 @@ SpidermanGame.prototype.muted              = false;
 SpidermanGame.prototype.slowmotion         = false;
 
 SpidermanGame.prototype.load = function() {
-	if (!this.options) return false;
 	if (this.initialized) return false;
 
 	var self = this;
 
-	this.canvas = document.querySelector(this.options.canvas);
+	this.canvas = document.querySelector(this.canvas);
 	if (!this.canvas) {
 		this.canvas = document.createElement("canvas");
 		document.body.appendChild(this.canvas);
@@ -253,6 +256,10 @@ SpidermanGame.prototype.load = function() {
 				self.scene.roofs = [roof];
 				self.update();
 				self.playSound(AUDIO_LOOP[0], false, 0);
+
+				// if game was muted in initial options
+				if (self.muted) self.mute();
+
 				return resolve();
 			}
 
@@ -660,9 +667,17 @@ SpiderMan.prototype.keydown = function(keyCode) {
 
 SpiderMan.prototype.keyup = function(keyCode) {
 	this.runningFrame = 0;
-	this.shootingFrame = 0;
 
-	this.removeState("RUNNING SHOOT".split(" "));
+	if (keyCode == KEY.ARROW_RIGHT || keyCode == KEY.ARROW_LEFT) {
+		this.removeState("RUNNING");
+	}
+
+	if (keyCode == KEY.SPACEBAR) {
+		this.removeState("SHOOT");
+		// reset the shootingFrame so if user presses space rapidly, it shoots rapidly
+		// but if user holds the space, it shoots every 20 frame
+		this.shootingFrame = 0;
+	}
 
 	while (this.keydowns.indexOf(keyCode) > -1) {
 		this.keydowns.splice(this.keydowns.indexOf(keyCode), 1);
