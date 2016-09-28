@@ -181,9 +181,7 @@ SpidermanGame.prototype.load = function() {
 		}
 	}
 
-	var canvasParent = (this.canvas.offsetParent || document.body);
-	canvasParent.classList.add("spiderman-game-canvas-container");
-	canvasParent.appendChild(menu);
+	document.body.appendChild(menu);
 
 	this.pauseMenu = menu;
 

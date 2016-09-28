@@ -3,10 +3,6 @@
 	src: url(../fonts/pixel.otf);
 }
 
-.spiderman-game-canvas-container {
-	position: relative;
-}
-
 .spiderman-game-menu-container,
 .spiderman-game-menu-container * {
 	-webkit-box-sizing: border-box;
