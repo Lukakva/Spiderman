@@ -572,6 +572,8 @@ SpidermanGame.prototype.restart = function() {
 	this.scene.enemies = [];
 	this.cameraX = 0;
 	this.score = 0;
+
+	this.paused = false;
 	this.gameIsOver = false;
 
 	this.gameoverMenu.style.display = "none";
