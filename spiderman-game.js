@@ -856,8 +856,11 @@ SpiderMan.prototype.update = function() {
 	this.y += this.velocityY;
 	this.x += this.velocityX;
 
-	if (this.x < 0) this.x = 0; // dont allow going left
-	if (this.x > 150) {
+	if (this.x - this.game.cameraX < 0) {
+		this.x = this.game.cameraX; // dont allow going left
+	}
+
+	if (this.x - this.game.cameraX > 150) {
 		this.game.cameraX += this.velocityX;
 	}
 	
