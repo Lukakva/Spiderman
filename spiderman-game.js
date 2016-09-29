@@ -463,7 +463,8 @@ SpidermanGame.prototype.update = function() {
 	this.ctx.fillStyle = "white";
 	this.ctx.font = "20px SpidermanGamePixelFont, Monospace, Helvetica";
 	this.ctx.textAlign = "center";
-	this.ctx.fillText(this.score, this.canvas.width / 2, 30);
+	this.ctx.textBaseline = "top";
+	this.ctx.fillText(this.score, this.canvas.width / 2, 5);
 
 	for (var i = 0; i < projectiles.length; i++) {
 		var projectile = projectiles[i];
@@ -598,11 +599,13 @@ function SpiderMan(game) {
 	this.health = 5;
 	this.maxHealth = 5;
 
+	this.web = 50;
+
 	this.velocityX = 0;
 	this.velocityY = 0;
 
 	// to regenerate every N fps (approximately N / 60 seconds)
-	this.regenerationSpeed = 600;
+	this.regenerationSpeed = 1200;
 
 	// how many frames have passed
 	this.frame = 0;
@@ -734,6 +737,8 @@ SpiderMan.prototype.regenerate = function() {
 }
 
 SpiderMan.prototype.shoot = function(img) {
+	if (this.web <= 0) return;
+
 	var direction = this.runningDirection || 1;
 	var web = new Projectile(this.game);
 
@@ -775,6 +780,8 @@ SpiderMan.prototype.shoot = function(img) {
 	if (this.game.soundEffects == true) {
 		this.game.playSound("SHOOT", true, 0);
 	}
+
+	this.web--;
 }
 
 SpiderMan.prototype.drawHealthbar = function() {
@@ -789,6 +796,36 @@ SpiderMan.prototype.drawHealthbar = function() {
 		var y = 5;
 		this.ctx.drawImage(this.game.resources.HEART, x, y, heart.width, heart.height);
 	}
+}
+
+SpiderMan.prototype.drawWebbar = function() {
+	var img = this.game.resources.WEB_PROJECTILE;
+	var string = "X " + this.web;
+	this.ctx.fillStyle = "white";
+	this.ctx.font = "15px SpidermanGamePixelFont, Monospace, Arial";
+	this.ctx.textAlign = "start";
+	this.ctx.textBaseline = "top";
+
+	var web = {
+		width: 20,
+		height: 20,
+	};
+
+	var text = {
+		string: string,
+		width: this.ctx.measureText(string).width,
+		verticalPadding: 5,
+		horizontalPadding: 10,
+	};
+
+	var x = this.canvas.width - web.width - text.width - text.horizontalPadding * 2;
+	var y = text.verticalPadding;
+
+	var textX = x + web.width + text.horizontalPadding;
+	var textY = y;
+
+	this.ctx.drawImage(img, x, y, web.width, web.height);
+	this.ctx.fillText(text.string, textX, textY);
 }
 
 // function that gets called with global update function
@@ -808,7 +845,7 @@ SpiderMan.prototype.update = function() {
 		this.addState("SHOOT");
 	}
 
-	if (this.y >= this.canvas.height || !this.health) {
+	if (this.y >= this.canvas.height || !this.health || !this.web) {
 		this.game.gameover();
 	}
 
@@ -874,6 +911,7 @@ SpiderMan.prototype.update = function() {
 
 	this.regenerate();
 	this.drawHealthbar();
+	this.drawWebbar();
 
 	this.frame++;
 }
@@ -1046,6 +1084,7 @@ Enemy.prototype.update = function() {
 
 Enemy.prototype.remove = function() {
 	this.game.score++;
+	this.game.spiderman.web += this.maxHealth;
 	this.game.removeEnemy(this);	
 }
 
