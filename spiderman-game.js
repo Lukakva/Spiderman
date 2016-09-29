@@ -134,17 +134,16 @@ SpidermanGame.prototype.load = function() {
 	this.canvas.height = 400;
 	this.canvas.width = 711;
 
-	var parser = new DOMParser();
-	var menu = parser.parseFromString(
-	// trying to have long class names to avoid any possible conflits
+	var menu = document.createElement("div");
+	menu.innerHTML = 
 	'<div class="spiderman-game-menu-container">' +
 		'<div class="spiderman-game-menu-title">PAUSED</div>' +
 		'<div class="spiderman-game-menu-button spiderman-game-menu-button-resume">RESUME</div>' +
 		'<div class="spiderman-game-menu-button spiderman-game-menu-button-mute-sounds">MUTE SOUNDS</div>' +
 		'<div class="spiderman-game-menu-button spiderman-game-menu-button-mute-music">MUTE MUSIC</div>' +
 		'<div class="spiderman-game-menu-button spiderman-game-menu-button-mute-slowmotion">TOGGLE SLOWMOTION</div>' +
-	'</div>', 'text/html');
-	menu = menu.body.firstChild;
+	'</div>';
+	menu = menu.firstChild;
 	menu.style.display = "none";
 	menu.querySelector(".spiderman-game-menu-button-resume").onclick = function() {
 		self.unpause();
@@ -177,10 +176,23 @@ SpidermanGame.prototype.load = function() {
 			self.setSlowmotion(true);
 		}
 	}
-
 	document.body.appendChild(menu);
-
 	this.pauseMenu = menu;
+
+	var gameoverMenu = document.createElement("div");
+	gameoverMenu.innerHTML = 
+	'<div class="spiderman-game-menu-container">' +
+		'<div class="spiderman-game-menu-title">GAME OVER</div>' +
+		'<div class="spiderman-game-menu-title">FINAL SCORE: <span class="spiderman-game-score">0</span></div>' +
+		'<div class="spiderman-game-menu-button spiderman-game-menu-button-restart">RESTART</div>' +
+	'</div>';
+	gameoverMenu = gameoverMenu.firstChild;
+
+	gameoverMenu.querySelector(".spiderman-game-menu-button-restart").onclick = function() {
+		self.restart();
+	}
+	document.body.appendChild(gameoverMenu);
+	this.gameoverMenu = gameoverMenu;
 
 	var spiderman = new SpiderMan(this);
 	this.spiderman = spiderman;
@@ -213,7 +225,10 @@ SpidermanGame.prototype.load = function() {
 	window.addEventListener("resize", function() {
 		// resizing might change the canvas position, re position the menu if it is visible
 		if (self.paused) {
-			self.showMenu();
+			self.showPauseMenu();
+		}
+		if (self.gameIsOver) {
+			self.showGameoverMenu();
 		}
 	});
 
@@ -318,21 +333,35 @@ SpidermanGame.prototype.unmute = function() {
 	}
 }
 
-SpidermanGame.prototype.showMenu = function() {
+SpidermanGame.prototype.showPauseMenu = function() {
+	if (this.gameoverMenu.style.display == "block") return;
 	var pauseMenu = this.pauseMenu;
 
 	var canvasRect = this.canvas.getBoundingClientRect(); // includes CSS translations
 	var left = canvasRect.left;
 	var top = canvasRect.top;
-	this.pauseMenu.style.display = "block";
 
-	this.pauseMenu.style.left = left + this.canvas.width / 2;
-	this.pauseMenu.style.top = top + this.canvas.height / 2;
+	this.pauseMenu.style.display = "block";
+	this.pauseMenu.style.left = (left + this.canvas.width / 2) + "px";
+	this.pauseMenu.style.top = (top + this.canvas.height / 2) + "px";
+}
+
+SpidermanGame.prototype.showGameoverMenu = function() {
+	var gameoverMenu = this.gameoverMenu;
+	this.gameoverMenu.querySelector(".spiderman-game-score").innerHTML = this.score;
+
+	var canvasRect = this.canvas.getBoundingClientRect(); // includes CSS translations
+	var left = canvasRect.left;
+	var top = canvasRect.top;
+
+	this.gameoverMenu.style.display = "block";
+	this.gameoverMenu.style.left = (left + this.canvas.width / 2) + "px";
+	this.gameoverMenu.style.top = (top + this.canvas.height / 2) + "px";
 }
 
 SpidermanGame.prototype.pause = function() {
 	this.paused = true;
-	this.showMenu();
+	this.showPauseMenu();
 };
 
 SpidermanGame.prototype.unpause = function() {
@@ -412,6 +441,7 @@ SpidermanGame.prototype.drawEnemies = function() {
 
 SpidermanGame.prototype.update = function() {
 	if (this.paused) return;
+	if (this.gameIsOver) return;
 
 	// draw the scene
 	var scene = this.scene;
@@ -541,13 +571,18 @@ SpidermanGame.prototype.restart = function() {
 	this.scene.enemies = [];
 	this.cameraX = 0;
 	this.score = 0;
+	this.gameIsOver = false;
+
+	this.gameoverMenu.style.display = "none";
+	this.pauseMenu.style.display = "none";
+
+	this.update();
 }
 
 SpidermanGame.prototype.gameover = function() {
-	this.restart();
+	this.gameIsOver = true;
 
-	this.spiderman = new SpiderMan(this);
-	this.scene.spiderman = this.spiderman;
+	this.showGameoverMenu();
 }
 
 function SpiderMan(game) {
@@ -774,7 +809,7 @@ SpiderMan.prototype.update = function() {
 	}
 
 	if (this.y >= this.canvas.height || !this.health) {
-		this.game.restart();
+		this.game.gameover();
 	}
 
 	var img = this.stateImage();
