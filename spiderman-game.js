@@ -51,10 +51,9 @@ var AUDIO_RESOURCES = {
 	"FRIENDLY_SPIDERMAN"   : new Audio(RESOURCES_FOLDER_PATH + "audio/60-theme-song.mp3"),
 	"MOVIE_THEME"          : new Audio(RESOURCES_FOLDER_PATH + "audio/old-theme.mp3"),
 	"ANIMATED_SERIES"      : new Audio(RESOURCES_FOLDER_PATH + "audio/animated-series-theme.mp3"),
-	"SHOOT"                : new Audio(RESOURCES_FOLDER_PATH + "audio/shooting-web.wav"),
+	"SHOOT"                : new Audio(RESOURCES_FOLDER_PATH + "audio/shooting-web.mp3"),
 };
 
-// this is basically Object.values(AUDIO_RESOURCES); (but that doens't exist so)
 var AUDIO_LOOP = [
 	"AMAZING_SPIDER_MAN_2",
 	"FRIENDLY_SPIDERMAN",
