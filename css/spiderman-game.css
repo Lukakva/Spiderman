@@ -55,3 +55,57 @@
 .spiderman-game-menu-button:active {
 	color: rgb(200, 0, 0);
 }
+
+#start-wrapper {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+
+	-webkit-transform: translate(-50%, -50%);
+	-moz-transform: translate(-50%, -50%);
+	-ms-transform: translate(-50%, -50%);
+	-o-transform: translate(-50%, -50%);
+	transform: translate(-50%, -50%);
+}
+
+#start-button {
+	font-family: SpidermanGamePixelFont;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	color: white;
+
+	background: rgb(249,2,0);
+	background: -moz-linear-gradient(90deg, rgba(249,2,0,1) 56%, rgba(16,96,201,1) 56%);
+	background: -webkit-linear-gradient(90deg, rgba(249,2,0,1) 56%, rgba(16,96,201,1) 56%);
+	background: linear-gradient(90deg, rgba(249,2,0,1) 56%, rgba(16,96,201,1) 56%);
+
+	background-size: 100% 100%;
+	transition: background-size 200ms, opacity 100ms;
+
+	border: none;
+	padding: 7px 10px;
+	cursor: pointer;
+}
+
+#start-button:hover {
+	background-size: 200% 100%;
+	box-shadow: 0 0 20px inset rgba(0, 0, 0, 0.5);
+}
+
+#start-button:active {
+	opacity: 0.5;
+}
+
+#start-button img {
+	height: 30px;
+	width: 30px;
+	margin-left: 20px;
+
+	transform: rotateZ(0deg);
+	transition: transform 200ms;
+}
+
+#start-button:hover img {
+	transform: rotateZ(30deg);
+}

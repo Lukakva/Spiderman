@@ -84,7 +84,15 @@
 			<div class="key">Esc</div>
 			<span class="action">- Pause</span>
 		</div>
-		<canvas id="canvas"></canvas>
+		<div id="start-wrapper">
+			<button id="start-button">
+				<span>Start</span>
+				<span>
+					<img src="images/web.png" />
+				</span>
+			</button>
+		</div>
+		<canvas id="canvas" height="400" width="711"></canvas>
 		<div class="link">
 			View Source on 
 			<a href="https://github.com/Lukakva/Spiderman" target="_blank">Github</a>
@@ -94,10 +102,17 @@
 <script type="text/javascript" src="spiderman-game.js"></script>
 <script type="text/javascript">
 
+var startButton = document.getElementById("start-button");
 var game = new SpidermanGame({
 	canvas: "#canvas"
 });
-game.load();
+
+// Playing audio files requires user interaction to occur first.
+// So we have a start button.
+startButton.addEventListener("click", function(e) {
+	game.load();
+	startButton.parentElement.style.display = "none";
+});
 
 </script>
 </html>
