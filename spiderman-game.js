@@ -17,6 +17,20 @@ var requestAnimationFrame = (function() {
 
 window.requestAnimFrame = requestAnimationFrame;
 
+function determineFPS() {
+	return new Promise(function(resolve) {
+		var time = Date.now();
+		requestAnimFrame(function() {
+			requestAnimFrame(function() {
+				requestAnimFrame(function() {
+					var timePerFrame = (Date.now() - time) / 3;
+					resolve(1000 / timePerFrame);
+				});
+			})
+		});
+	});
+}
+
 var link = document.createElement("link");
 link.setAttribute("rel", "stylesheet");
 link.setAttribute("href", RESOURCES_FOLDER_PATH + "css/spiderman-game.css");
@@ -83,8 +97,8 @@ function SpidermanGame(opts) {
 	var options = {
 		canvas: "canvas",
 		score: 0,
-		muted: false,
-		soundEffects: true,
+		muted: true,
+		soundEffects: false,
 	};
 
 	opts = opts || {};
@@ -99,6 +113,8 @@ function SpidermanGame(opts) {
 
 	// how many frames have passed
 	this.frame = 0;
+	this.fps = 0;
+	this.last10thFrame = Date.now();
 	this.resources = {};
 
 	this.cameraX = 0;
@@ -118,6 +134,10 @@ SpidermanGame.prototype.soundEffects       = true;
 SpidermanGame.prototype.escapeKey          = false;
 SpidermanGame.prototype.muted              = false;
 SpidermanGame.prototype.slowmotion         = false;
+
+SpidermanGame.prototype.physicsCoefficient = function() {
+	return 60 / this.fps;
+}
 
 SpidermanGame.prototype.load = function() {
 	if (this.initialized) return false;
@@ -266,17 +286,23 @@ SpidermanGame.prototype.load = function() {
 
 		function loadNext() {
 			if (!reourcesArray[index]) {
-				var roof = new Roof(self, 0);
+				determineFPS().then(function(fps) {
+					console.log('Approximated FPS:', fps);
+					var roof = new Roof(self, 0);
 
-				self.scene.spiderman = spiderman;
-				self.scene.roofs = [roof];
-				self.update();
-				self.playSound(AUDIO_LOOP[0], false, 0);
+					self.scene.spiderman = spiderman;
+					self.scene.roofs = [roof];
+					self.fps = fps;
+					self.last10thFrame = Date.now();
+					self.update();
+					self.playSound(AUDIO_LOOP[0], false, 0);
 
-				// if game was muted in initial options
-				if (self.muted) self.mute();
+					// if game was muted in initial options
+					if (self.muted) self.mute();
 
-				return resolve();
+					return resolve();
+				});
+				return;
 			}
 
 			var resource = reourcesArray[index];
@@ -477,6 +503,14 @@ SpidermanGame.prototype.update = function() {
 		}
 	}
 
+	this.frame++;
+	if (this.frame % 10 === 0) {
+		var timePerFrame = (Date.now() - this.last10thFrame) /10;
+		this.last10thFrame = Date.now();
+		this.fps = 1000 / timePerFrame;
+		console.log(this.fps);
+	}
+
 	requestAnimFrame(this.update.bind(this));
 }
 
@@ -670,7 +704,7 @@ SpiderMan.prototype.stateImage = function() {
 		state = "JUMP";
 
 		if (this.velocityY == 0) {
-			this.velocityY = -15;
+			this.velocityY = -15 * Math.sqrt(this.game.physicsCoefficient());
 		}
 	}
 
@@ -688,7 +722,7 @@ SpiderMan.prototype.stateImage = function() {
 			this.runningFrame %= this.runningFrames.length - 1;
 		}
 
-		this.velocityX = this.runningDirection * this.runningSpeed;
+		this.velocityX = this.runningDirection * this.runningSpeed * this.game.physicsCoefficient();
 	} else {
 		this.velocityX = 0;
 	}
@@ -852,7 +886,7 @@ SpiderMan.prototype.update = function() {
 
 	var img = this.stateImage();
 
-	this.velocityY += this.gravityForce;
+	this.velocityY += this.gravityForce * this.game.physicsCoefficient();
 
 	this.y += this.velocityY;
 	this.x += this.velocityX;
@@ -1015,7 +1049,7 @@ Enemy.prototype.shoot = function() {
 	projectile.update = function() {
 		this.ctx.drawImage(knife, this.x - this.game.cameraX, this.y, knife.width * self.scale / 2, knife.height * self.scale / 2);
 
-		this.x -= 10;
+		this.x -= 10 * this.game.physicsCoefficient();
 	}
 
 	this.game.addProjectile(projectile);
