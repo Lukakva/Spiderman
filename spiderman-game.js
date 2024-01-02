@@ -97,8 +97,8 @@ function SpidermanGame(opts) {
 	var options = {
 		canvas: "canvas",
 		score: 0,
-		muted: true,
-		soundEffects: false,
+		muted: false,
+		soundEffects: true,
 	};
 
 	opts = opts || {};
@@ -505,10 +505,9 @@ SpidermanGame.prototype.update = function() {
 
 	this.frame++;
 	if (this.frame % 10 === 0) {
-		var timePerFrame = (Date.now() - this.last10thFrame) /10;
+		var timePerFrame = (Date.now() - this.last10thFrame) / 10;
 		this.last10thFrame = Date.now();
 		this.fps = 1000 / timePerFrame;
-		console.log(this.fps);
 	}
 
 	requestAnimFrame(this.update.bind(this));
